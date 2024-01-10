@@ -39,8 +39,7 @@ contract Bank {
         uint8 modifyIndex = 3;
         for (uint8 i = 0; i < 3; i++) {
             if (leadboard[i] == msgSender) {
-                modifyIndex = 3;
-                break;
+                return;
             }
             if (balance[leadboard[i]] < min) {
                 min = balance[leadboard[i]];
