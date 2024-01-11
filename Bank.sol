@@ -22,6 +22,10 @@ contract Bank {
     function displayLeadboard() external view returns(address[3] memory) {
         return leadboard;
     }
+
+    function transferOwner(address owner) external onlyAdmin {
+        admin = owner;
+    }
     
     function withdraw() external onlyAdmin {
         uint256 amount = address(this).balance;
@@ -29,7 +33,7 @@ contract Bank {
         payable(msg.sender).transfer(amount);
     }
 
-    receive() external payable {
+    function _desposit() internal {
         uint256 amount = msg.value;
         address msgSender = msg.sender;
         require(amount > 0, "Incorrect Value");
@@ -49,5 +53,20 @@ contract Bank {
         if (modifyIndex < 3) {
             leadboard[modifyIndex] = msgSender;
         }
+    }
+
+    receive() external payable {
+        _desposit();
+    }
+}
+
+contract BigBank is Bank {
+    modifier depositLimit {
+        require(msg.value >= 1000000000000000, "Deposit Limit");
+        _;
+    }
+
+    function desposit() external payable depositLimit  {
+        super._desposit();
     }
 }
