@@ -62,7 +62,7 @@ contract Bank {
 
 contract BigBank is Bank {
     modifier depositLimit {
-        require(msg.value >= 1000000000000000, "Deposit Limit");
+        require(msg.value >= 0.001 ether, "Deposit Limit");
         _;
     }
 
