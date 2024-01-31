@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-import {Test, console} from "forge-std/Test.sol";
 
 contract Bank {
+    address constant GUARD = address(1);
     address public admin;
-    address[3] private leadboard;
-    mapping(address => uint256) private balance;
+
+    struct account {
+        address user;
+        uint256 balance;
+    }
+
+    mapping(address => uint256) private _balance;
+    mapping(address => address) private _nextUsers;  // 总存入额排行榜，不包含已取出的
+    uint256 constant SIZE_LIMIT = 3;
+    
 
     modifier onlyAdmin {
         require(msg.sender == admin, "Not Admin");
@@ -17,10 +25,18 @@ contract Bank {
     }
     
     function balanceOf(address depositor) external view returns(uint256) {
-        return balance[depositor];
+        return _balance[depositor];
     }
     
-    function displayLeadboard() external view returns(address[3] memory) {
+    function displayLeadboard() external view returns(address[] memory) {
+        address[] memory leadboard = new address[](SIZE_LIMIT);
+
+        address current = _nextUsers[GUARD];
+        for(uint256 i = 0; i < SIZE_LIMIT; ++i) {
+            leadboard[i] = current;
+            current = _nextUsers[current];
+        }
+
         return leadboard;
     }
 
@@ -38,21 +54,30 @@ contract Bank {
         uint256 amount = msg.value;
         address msgSender = msg.sender;
         require(amount > 0, "Incorrect Value");
-        balance[msg.sender] += amount;
+        _balance[msg.sender] += amount;
+        uint256 balance = _balance[msg.sender];
 
-        uint256 min = balance[msg.sender];
-        uint8 modifyIndex = 3;
-        for (uint8 i = 0; i < 3; i++) {
-            if (leadboard[i] == msgSender) {
+        // 排行榜链表排序
+        address next;
+        address current = GUARD;
+        for (uint256 i = 0; i < SIZE_LIMIT; ++i) {
+            next = _nextUsers[current];
+            if (next == msgSender) {
                 return;
             }
-            if (balance[leadboard[i]] < min) {
-                min = balance[leadboard[i]];
-                modifyIndex = i;
+
+            if (next == address(0)) {
+                _nextUsers[current] = msg.sender;
+                return;
             }
-        }
-        if (modifyIndex < 3) {
-            leadboard[modifyIndex] = msgSender;
+
+            if (balance > _balance[next]) {
+                _nextUsers[current] = msg.sender;
+                _nextUsers[msg.sender] = next;
+                return;
+            }
+
+            current = next;
         }
     }
 
